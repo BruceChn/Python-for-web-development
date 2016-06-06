@@ -4,22 +4,23 @@ from functools import wraps
 import sqlite3
 import os
 
+
+os.environ["APPLICATION_SETTINGS"] = '.\config.py'
 app = Flask(__name__)
 
 
-
-#app.config.from_object('blog.default_settings')
+#app.config.from_object(__name__)
 app.config.from_envvar('APPLICATION_SETTINGS')
 
 def connect_db():
-	return sqlite3.connect(sql.config['DATABASE'])
-def login_required(test):
-	@wraps(test)
-	def wrap(*args,**kwargs):
+	return sqlite3.connect(app.config['DATABASE'])
+def login_required(func):
+	@wraps(func)
+	def wrap(*args,**kargv):
 		if 'logged_in' in session:
-			return test(*args,**kwargs)
+			return func(*args,**kargv)
 		else:
-			flash('You need to login first.')
+			flash('you must login in first')
 			return redirect(url_for('login'))
 	return wrap
 @app.route('/',methods = ['GET','POST'])
@@ -32,15 +33,38 @@ def login():
 			session['logged_in'] = True
 			return redirect(url_for('main'))		
 	return render_template('login.html',error = error)
+
 @app.route('/main')
 @login_required
 def main():
-	return render_template('main.html')
-@app.route('/logout')
+	g.db = connect_db()
+	cur = g.db.execute('select * from posts')
+	posts = [dict(title = row[0],post = row[1]) for row in cur.fetchall()]
+	g.db.close()
+	return render_template('main.html',posts = posts)
+@app.route('/logout')	
 def logout():
 	session.pop('logged_in',None)
 	flash('You were logged out')
 	return redirect(url_for('login'))
+	
+@app.route('/add',methods = ['POST'])
+@login_required
+def add():
+	
+	title = request.form['title']
+	post = request.form['post']
+	if not title or not post:
+		flash("All fields are required.Please try again.")
+		return redirect(url_for('main'))
+	else:
+		g.db = connect_db()
+		g.db.execute('insert into posts(title,post) Values(?,?)',[request.form['title'],request.form['post']])
+		g.db.commit()
+		g.db.close()
+		flash('New entry was successfully posted!')
+		
+		return redirect(url_for('main'))
 
 if __name__ == '__main__':
 	app.run()
