@@ -43,11 +43,11 @@ h2 {
 	margin-left: -1em;
 }
 
-.add-task {
+.add_task {
 	font-size: 0.9em;
 	border-bottom: 1px solid #ccc;
 }
-.add-task dl {
+.add_task dl {
 	font-weight: bold;
 }
 .metanav {
@@ -63,8 +63,9 @@ h2 {
 }
 
 .error {
-	background: #F0D6D6;
-	padding: 0.5em;
+	color: red;
+	font-size:.8em;
+	background-color: #FFFFFF;
 }
 
 .datagrid table {

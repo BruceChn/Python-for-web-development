@@ -4,10 +4,10 @@ from wtforms.validators import DataRequired,Length,EqualTo,Email
 
 class AddTaskForm(Form):
 	task_id = IntegerField()
-	name = StringField('Task name', validators = [DataRequired()])
+	name = StringField('Task name', validators = [DataRequired(),Length(min = 6, max = 25)])
 	due_date = DateField(
 		'Due Date(mm/dd/yyyy)',
-		validators = [DataRequired()],format = '%m/%d/%Y')
+		validators = [DataRequired(message = "enter the correct date")],format = '%m/%d/%Y')
 	priority = SelectField(
 		'Priority',
 		validators = [DataRequired()],choices = [('1','1'),('2','2'),('3','3'),('4','4')])
@@ -15,7 +15,7 @@ class AddTaskForm(Form):
 	
 class RegisterForm(Form):
 	name = StringField('UserName',validators = [DataRequired(),Length(min = 6,max = 25)])
-	email = StringField('Email' ,validators = [DataRequired(),Email()])
+	email = StringField('Email' ,validators = [DataRequired(),Email(),Length(min = 6,max = 25)])
 	password = PasswordField('Password',validators = [DataRequired(), Length(min = 6,max = 40)])
 	confirm = PasswordField('Repeat Password', validators = [DataRequired(),EqualTo('password',message = 'Password Must Match')])
 

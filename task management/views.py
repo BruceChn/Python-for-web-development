@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from flask import Flask,flash,redirect,render_template,request,session, url_for,g
 from forms import AddTaskForm,RegisterForm,LoginForm
+from sqlalchemy.exc import IntegrityError
 import datetime
 
 
@@ -32,7 +33,7 @@ def login():
 	error = None
 	form = LoginForm(request.form)
 	if request.method == 'POST':
-		if form.validate_on_submit:
+		if form.validate_on_submit():
 			user = User.query.filter_by(name = request.form['name']).first()
 			if user is not None and user.password == request.form['password']:
 				session['login_in'] = True
@@ -48,20 +49,23 @@ def login():
 @login_required
 def tasks():
 
-	open_tasks = db.session.query(Task).filter_by(status = 1, user_id = session['user_id']).order_by(Task.due_date.asc())
-	
-	
-	closed_tasks = db.session.query(Task).filter_by(status = 0, user_id = session['user_id']).order_by(Task.due_date.asc())
-
 	return render_template(
 		'task.html',
 		form = AddTaskForm(request.form),
-		open_tasks = open_tasks,
-		closed_tasks = closed_tasks
+		open_tasks = open_tasks(),
+		closed_tasks = closed_tasks()
 	)
+
+def open_tasks():
+	return db.session.query(Task).filter_by(status = 1, user_id = session['user_id']).order_by(Task.due_date.asc())
+
+def closed_tasks():
+	return db.session.query(Task).filter_by(status = 0, user_id = session['user_id']).order_by(Task.due_date.asc())
+
 @app.route('/add',methods = ['GET','POST'])
 @login_required
 def new_task():
+	error = None
 	form = AddTaskForm(request.form)
 	if request.method == 'POST':
 		if form.validate_on_submit():
@@ -74,8 +78,12 @@ def new_task():
 			db.session.add(new_task)
 			db.session.commit()
 			flash('new entry was successfully posted. Thansk.!')
-
-	return redirect(url_for('tasks'))
+			return redirect(url_for('tasks'))
+	return  render_template('task.html',
+							form = form,
+							error = error,
+							open_tasks = open_tasks(),
+							closed_tasks = closed_tasks())
 @app.route('/complete/<int:task_id>/')
 @login_required
 def complete(task_id):
@@ -105,9 +113,16 @@ def register():
 				form.email.data,
 				form.password.data
 			)
-			db.session.add(new_user)
-			db.session.commit()
-			flash('Thanks for registering.Please login in')
-			return redirect(url_for('login'))
+			try:
+				db.session.add(new_user)
+				db.session.commit()
+				flash('Thanks for registering.Please login in')
+				return redirect(url_for('login'))
+			except IntegrityError:
+				error = 'That username and/or emial already exist'
 	return render_template('register.html',form = form,error = error)
-				
+
+def flash_errors(form):
+	for field, errors in form.errors.items():
+		for error in errors:
+			flash(u"Error in the %s filed - %s" % (getattrr(form, field).label.text,error),'error')
