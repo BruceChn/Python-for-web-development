@@ -19,7 +19,7 @@ class Task(db.Model):
 		self.posted_date = posted_date
 		
 	def __repr__(self):
-		return '<name{0}>'.formate(self.name)
+		return '<name{0}>'.format(self.name)
 		
 class User(db.Model):
 	__tablename__ = "users"
@@ -27,12 +27,14 @@ class User(db.Model):
 	name = db.Column(db.String,unique = True, nullable = True)
 	email = db.Column(db.String,unique = True, nullable = True)
 	password = db.Column(db.String,nullable = True)
+	role = db.Column(db.String,default = 'user')
 	tasks = db.relationship('Task',backref = 'poster')
 	
-	def __init__(self,name = None,email = None,password = None):
+	def __init__(self,name = None,email = None,password = None,role = None):
 		self.name = name
 		self.email = email
 		self.password = password
+		self.role = role
 	
 	def __repr__(self):
 		return '<User {0}>'.format(self.name)

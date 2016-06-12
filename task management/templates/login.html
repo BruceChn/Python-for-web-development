@@ -18,8 +18,8 @@
 	<p>
 		{{form.password(placeholder = "password")}}
 		<span class = "error">
-			{% if form.name.errors %}
-				{% for error in form.name.errors %}
+			{% if form.password.errors %}
+				{% for error in form.password.errors %}
 					{{error}}
 				{% endfor %}
 			{% endif %}

@@ -14,6 +14,7 @@ from models import Task,User
 def login_required(func):
 	@wraps(func)
 	def wrap(*args, **argv):
+		
 		if 'logged_in' in session:
 			return func(*args, **argv)
 		else:
@@ -23,21 +24,28 @@ def login_required(func):
 
 #route handlers
 @app.route('/logout/') 
+@login_required
 def logout():
-	session.pop('logout',None)
+	session.pop('logged_in',None)
 	session.pop('user_id',None)
+	session.pop('role',None)
 	flash('Goodbye')
 	return redirect(url_for('login'))
+	
 @app.route('/',methods = ['GET','POST'])
 def login():
 	error = None
 	form = LoginForm(request.form)
+	if 'logged_in' in session:
+		return redirect(url_for('tasks'))
 	if request.method == 'POST':
+
 		if form.validate_on_submit():
 			user = User.query.filter_by(name = request.form['name']).first()
 			if user is not None and user.password == request.form['password']:
-				session['login_in'] = True
+				session['logged_in'] = True
 				session['user_id'] = user.id
+				session['role'] = user.role
 				flash('Welcome')
 				return redirect(url_for('tasks'))
 			else:
@@ -45,10 +53,9 @@ def login():
 		else:
 			flash("Both fields are required")
 	return render_template('login.html',form = form, error = error)
-@app.route('/task')
+@app.route('/tasks')
 @login_required
 def tasks():
-
 	return render_template(
 		'task.html',
 		form = AddTaskForm(request.form),
@@ -84,24 +91,34 @@ def new_task():
 							error = error,
 							open_tasks = open_tasks(),
 							closed_tasks = closed_tasks())
+							
 @app.route('/complete/<int:task_id>/')
 @login_required
 def complete(task_id):
 	new_id = task_id
-	db.session.query(Task).filter_by(task_id = new_id).update({"status":"0"})
-	db.session.commit()
-	flash('The task was marked as complete')
-	return redirect(url_for('tasks'))
+	task = db.session.query(Task).filter_by(task_id = new_id)
+	if session['user_id'] == task.first().user_id:
+		task.update({"status":"0"})
+		db.session.commit()
+		flash('The task is successfully completed')
+		return redirect(url_for('tasks'))
+	else:
+		flash('You can only update tasks that belong to you.')
+		return redirect(url_for('tasks'))
 	
 @app.route('/delete/<int:task_id>')
 @login_required
 def delete_entry(task_id):
 	id = task_id
-	db.session.query(Task).filter_by(task_id = id).delete()
-	db.session.commit()
-	flash('The task was deleted.')
-	return redirect(url_for('tasks'))
-
+	task = db.session.query(Task).filter_by(task_id = id)
+	if session['user_id'] == task.first().user_id or session['role'] == 'admin':
+		task.delete()
+		db.session.commit()
+		flash('The task was deleted.')
+		return redirect(url_for('tasks'))
+	else:
+		flash('You can only delete tasks that belong to you.')
+		return redirect(url_for('tasks'))
 @app.route('/register',methods = ['GET','POST'])
 def register():
 	error = None
