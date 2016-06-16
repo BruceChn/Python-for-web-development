@@ -1,5 +1,6 @@
-from project import db
+from project import db,bcrypt
 from project.models import Task,User
+
 from datetime import date
 
 ###with sqlite3.connect(DATABASE_PATH) as conn:
@@ -15,9 +16,10 @@ from datetime import date
 
 
 db.create_all()
-db.session.add(User("admin","admin@gmail.com","admin","admin"))
+db.session.add(User("admin","admin@gmail.com",bcrypt.generate_password_hash("admin"),"admin"))
 db.session.add(Task("Finish this tutorial", date(2015, 3, 13), 1, date(2015,2, 13), 1, 1))
-#db.session.add(Task("Finish the tutorial",date(2015,3,13),4,1))
+
 db.session.add(Task("move",date(2016,6,14),1,date(2016,6,13),1,1))
 
 db.session.commit()
+

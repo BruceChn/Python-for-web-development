@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from project import app,db
+from project import app,db,bcrypt
 from project._config import basedir
 from project.models import User,Task
 
@@ -12,6 +12,7 @@ class AllTESTS(unittest.TestCase):
 		app.config['TESTING'] = True
 		app.config['WTF_CSRF_ENABLED'] = False
 		app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, TEST_DB)
+		app.config['Debug'] = False
 		self.app = app.test_client()
 		db.create_all()
 		
@@ -115,7 +116,7 @@ class AllTESTS(unittest.TestCase):
 		assert 'You need to login first' in response.data
 		
 	def create_user(self,name,email,password):
-		new_user = User(name = name,email = email,password = password)
+		new_user = User(name = name,email = email,password = bcrypt.generate_password_hash(password))
 		db.session.add(new_user)
 		db.session.commit()
 	
@@ -198,7 +199,7 @@ class AllTESTS(unittest.TestCase):
 		new_user = User(
 			name = 'Superman',
 			email = 'admin@realpython.com',
-			password = 'allpowerful',
+			password = bcrypt.generate_password_hash('allpowerful'),
 			role = 'admin'
 		)
 		db.session.add(new_user)
@@ -216,6 +217,17 @@ class AllTESTS(unittest.TestCase):
 		response = self.app.get("/delete/1",follow_redirects = True)
 		
 		self.assertNotIn(b'You can only delete tasks that belong to you',response.data)
+		
+	def test_task_template_displays_logged_in_user_name(self):
+		self.register('Zhenwei','zhenwei@gmail.com','python','python')
+		self.login('Zhenwei','python')
+		response = self.app.get('/tasks',follow_redirects = True)
+		self.assertIn(b'Zhenwei',response.data)
 	
+	def test_404_error(self):
+		response = self.app.get('/this-route-doen')
+		self.assertEquals(response.status_code,404)
+		self.assertIn(b'Go back Home',response.data)
+		
 if __name__ == "__main__":
 		unittest.main()

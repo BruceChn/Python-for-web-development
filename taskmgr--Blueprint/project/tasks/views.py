@@ -21,10 +21,16 @@ def login_required(func):
 	return wrap
 
 def open_tasks():
-	return db.session.query(Task).filter_by(status = 1,user_id = session['user_id']).order_by(Task.due_date.asc())
+	if not session['role'] == 'admin':
+		return db.session.query(Task).filter_by(status = 1,user_id = session['user_id']).order_by(Task.due_date.asc())
+	else:
+		return db.session.query(Task).filter_by(status = 1).order_by(Task.due_date.asc())
 	
 def closed_tasks():
-	return db.session.query(Task).filter_by(status = 0,user_id = session['user_id']).order_by(Task.due_date.asc())
+	if not session['role'] == 'admin':
+		return db.session.query(Task).filter_by(status = 0,user_id = session['user_id']).order_by(Task.due_date.asc())
+	else:
+		return db.session.query(Task).filter_by(status = 0).order_by(Task.due_date.asc())
 	
 @tasks_blueprint.route('/tasks')
 @login_required
@@ -33,7 +39,8 @@ def tasks():
 		'tasks.html',
 		form = AddTaskForm(request.form),
 		open_tasks = open_tasks(),
-		closed_tasks = closed_tasks()
+		closed_tasks = closed_tasks(),
+		name = session['name']
 	)
 
 @tasks_blueprint.route('/add',methods = ['GET','POST'])
